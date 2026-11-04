@@ -102,6 +102,42 @@
       line-height: 1.02;
     }
     .layout { display: block; }
+    .home {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      gap: 18px;
+      align-items: stretch;
+    }
+    body.checking .home { display: none; }
+    .guide h2 { margin: 0 0 8px; font-size: 20px; }
+    .guide-lead { margin: 0; color: var(--muted); font-size: 14px; }
+    .guide-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; }
+    .guide-tabs button { padding: 6px 12px; font-size: 13px; }
+    .guide-tabs button[aria-selected="true"] {
+      background: var(--ink);
+      color: var(--on-primary);
+    }
+    .guide ol { margin: 14px 0 0; padding: 0; list-style: none; counter-reset: step; }
+    .guide li {
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+    }
+    .guide li::before {
+      counter-increment: step;
+      content: counter(step);
+      display: grid;
+      width: 28px;
+      height: 28px;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--chip);
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .guide .note { margin: 14px 0 0; color: var(--muted); font-size: 13px; }
     .tools { display: flex; align-items: center; gap: 10px; }
     .back { display: none; }
     body.checking .back { display: inline-flex; }
@@ -437,6 +473,7 @@
     }
     @media (max-width: 860px) {
       .wrap { padding: 28px 16px 48px; }
+      .home { grid-template-columns: 1fr; }
       h1 { font-size: 38px; max-width: none; }
       body.checking .wrap { width: auto; height: auto; overflow: visible; padding: 28px 16px 48px; }
       body.checking #result { grid-template-columns: 1fr; width: 100%; height: auto; }
@@ -480,6 +517,7 @@
       </div>
     </header>
     <main class="layout">
+      <div class="home">
       <section class="card" id="composer">
         <form id="check-form">
           <label for="email">Email</label>
@@ -493,6 +531,19 @@
           </div>
         </form>
       </section>
+      <aside class="card guide" id="guide" aria-labelledby="guide-title">
+        <h2 id="guide-title">Download an .eml</h2>
+        <p class="guide-lead">Save the message as a file, then use Choose file. Leave links and attachments in it unopened.</p>
+        <div class="guide-tabs" role="tablist" aria-label="Mail app">
+          <button type="button" role="tab" id="tab-gmail" aria-selected="true" aria-controls="guide-steps" data-guide="gmail">Gmail</button>
+          <button type="button" role="tab" id="tab-outlook" aria-selected="false" aria-controls="guide-steps" data-guide="outlook">Outlook</button>
+          <button type="button" role="tab" id="tab-apple" aria-selected="false" aria-controls="guide-steps" data-guide="apple">Apple Mail</button>
+          <button type="button" role="tab" id="tab-thunderbird" aria-selected="false" aria-controls="guide-steps" data-guide="thunderbird">Thunderbird</button>
+        </div>
+        <ol class="steps" id="guide-steps"></ol>
+        <p class="note" id="guide-note"></p>
+      </aside>
+      </div>
       <section id="result" aria-live="polite" aria-label="Result" aria-hidden="true">
         <div class="card pane" id="detail">
           <div class="idle"><span class="idle-ring" aria-hidden="true"></span></div>
@@ -799,6 +850,64 @@
       if (!chosen) return;
       email.value = await chosen.text();
     });
+
+    const guides = {
+      gmail: {
+        steps: [
+          "Open the message in Gmail on a computer.",
+          "Click More, the three dots beside Reply.",
+          "Choose Download message.",
+          "The file ends in .eml. Use Choose file.",
+        ],
+        note: "Show original, then Download original, saves the same file.",
+      },
+      outlook: {
+        steps: [
+          "Open the message in New Outlook or Outlook on the web.",
+          "Click More actions, the three dots in the message header.",
+          "Choose Save as, or Download. Pick .eml if it asks.",
+          "Use Choose file.",
+        ],
+        note: "Classic Outlook saves .msg. This page reads .eml, so use New Outlook or Outlook on the web.",
+      },
+      apple: {
+        steps: [
+          "Select the message in Mail on a Mac.",
+          "Choose File, then Save As.",
+          "Set the format to Raw Message Source and save.",
+          "Or drag the message onto the desktop. That file is .eml.",
+        ],
+        note: "Then use Choose file.",
+      },
+      thunderbird: {
+        steps: [
+          "Right-click the message.",
+          "Choose Save As, then File.",
+          "Save it as .eml.",
+          "Or drag the message onto a folder. Thunderbird writes an .eml file.",
+        ],
+        note: "Then use Choose file.",
+      },
+    };
+    const guideSteps = document.querySelector("#guide-steps");
+    const guideNote = document.querySelector("#guide-note");
+    const guideTabs = [...document.querySelectorAll(".guide-tabs [role=tab]")];
+
+    function showGuide(key) {
+      const guide = guides[key];
+      clear(guideSteps);
+      guide.steps.forEach((step) => guideSteps.appendChild(el("li", step)));
+      guideNote.textContent = guide.note;
+      guideTabs.forEach((tab) => {
+        const selected = tab.dataset.guide === key;
+        tab.setAttribute("aria-selected", selected ? "true" : "false");
+      });
+    }
+
+    guideTabs.forEach((tab) => {
+      tab.addEventListener("click", () => showGuide(tab.dataset.guide));
+    });
+    showGuide("gmail");
   </script>
 </body>
 </html>
