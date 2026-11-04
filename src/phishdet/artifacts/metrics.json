@@ -1,0 +1,23 @@
+{
+  "rows": 17121,
+  "phishing": 6188,
+  "legitimate": 10933,
+  "test_size": 3425,
+  "precision": 0.9675,
+  "recall": 0.9855,
+  "f1": 0.9764,
+  "roc_auc": 0.9971,
+  "accuracy": 0.9828,
+  "confusion": [
+    [
+      2146,
+      41
+    ],
+    [
+      18,
+      1220
+    ]
+  ],
+  "dataset": "zefang-liu/phishing-email-dataset",
+  "dataset_sha256": "18ef4fff1acb8986f0ab01e83ede6025420c829656af5a377560fce17e153b97"
+}

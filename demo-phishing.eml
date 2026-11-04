@@ -1,0 +1,25 @@
+From: "Microsoft Account Team" <no-reply@micros0ft-secure.invalid>
+Reply-To: helpdesk@account-verify.invalid
+To: user@example.com
+Subject: [DEMO] Action required: your mailbox will be closed
+Date: Thu, 05 Nov 2026 09:30:00 +0000
+Message-ID: <demo-2026-11-05@phishdet.invalid>
+Authentication-Results: mx.example.com; spf=fail smtp.mailfrom=micros0ft-secure.invalid; dkim=fail; dmarc=fail
+Received-SPF: fail identity=mailfrom; client-ip=203.0.113.10
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+X-Phishdet-Demo: sample
+
+<html>
+<body>
+<p>Dear user,</p>
+<p>We detected unusual sign-in activity on your Microsoft account.
+Confirm your password immediately or the mailbox will be suspended within 24 hours.</p>
+<p><a href="http://micros0ft-secure.invalid/login">https://login.microsoftonline.com/</a></p>
+<form action="http://micros0ft-secure.invalid/login" method="post">
+<input type="password" name="password">
+<input type="submit" value="Verify account">
+</form>
+<p>This file is a local demo for Phishdet. The addresses use the reserved .invalid domain and do not point at a real site.</p>
+</body>
+</html>

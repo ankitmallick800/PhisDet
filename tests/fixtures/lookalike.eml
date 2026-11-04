@@ -1,0 +1,16 @@
+From: Harbor Credit Union <security@harbor-alerts.example>
+To: member@example.com
+Subject: Your account has been locked
+Date: Thu, 06 Nov 2025 04:41:00 +0000
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Dear member,
+
+Your online banking account has been locked. Verify your identity immediately
+or the account will be closed within 24 hours.
+
+Confirm your password here:
+https://harbor-alerts.example/login
+
+Harbor Credit Union Security

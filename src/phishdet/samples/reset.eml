@@ -1,0 +1,19 @@
+From: GitHub <noreply@github.com>
+Reply-To: noreply@github.com
+To: dev@example.com
+Subject: Reset your GitHub password
+Date: Mon, 03 Nov 2025 14:00:00 +0000
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Hi,
+
+We received a request to reset the password for your GitHub account @octocat.
+
+You can choose a new password here:
+https://github.com/password_reset?token=example
+
+This link expires in 30 minutes. If you did not ask for a reset, ignore this message. Your password will stay the same.
+
+Thanks,
+GitHub Support

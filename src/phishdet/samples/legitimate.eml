@@ -1,0 +1,18 @@
+From: Priya Nair <priya.nair@example.com>
+To: team@example.com
+Subject: Notes from today's design review
+Date: Mon, 03 Nov 2025 18:12:00 +0000
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Team,
+
+A few decisions from the review:
+
+- We will ship the export button in the November release.
+- Maya is writing the empty-state copy.
+- The API timeout stays at 30 seconds.
+
+I put the mockups in the shared drive. Next check-in is Thursday.
+
+Priya

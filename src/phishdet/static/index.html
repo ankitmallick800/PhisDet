@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Phishdet</title>
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem("phishdet-theme");
+        var theme = saved === "dark" || saved === "light"
+          ? saved
+          : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", theme);
+      } catch (error) {
+        document.documentElement.setAttribute("data-theme", "light");
+      }
+    })();
+  </script>
+  <style>
+    :root, [data-theme="light"] {
+      color-scheme: light;
+      --ink: #1c1712;
+      --muted: #7a7066;
+      --line: #eadfce;
+      --paper: #f4efe6;
+      --card: #fffdf9;
+      --field: #fff;
+      --chip: #f0ebe3;
+      --on-primary: #fffdf9;
+      --phish: #8f1f1c;
+      --phish-bg: #f8e6e1;
+      --safe: #1a6840;
+      --safe-bg: #e3f3e8;
+      --warn: #8a5a12;
+      --warn-bg: #f8efd8;
+      --glow-a: #fff;
+      --glow-b: #f7e7d4;
+      --shadow: 0 1px 0 rgba(28, 23, 18, 0.04), 0 22px 50px rgba(78, 52, 18, 0.06);
+      --thumb-shadow: 0 6px 16px rgba(28, 23, 18, 0.18);
+    }
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --ink: #f4efe6;
+      --muted: #b5aa9e;
+      --line: #3a332c;
+      --paper: #12100e;
+      --card: #1c1814;
+      --field: #141210;
+      --chip: #2c261f;
+      --on-primary: #16130f;
+      --phish: #ffb4aa;
+      --phish-bg: #3a221e;
+      --safe: #9ddec0;
+      --safe-bg: #1a3328;
+      --warn: #f0d7a4;
+      --warn-bg: #3a2e1a;
+      --glow-a: #2a241c;
+      --glow-b: #3a2418;
+      --shadow: 0 1px 0 rgba(255, 244, 230, 0.04), 0 22px 50px rgba(0, 0, 0, 0.35);
+      --thumb-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      color: var(--ink);
+      font: 16px/1.5 "Segoe UI", system-ui, sans-serif;
+      background:
+        radial-gradient(900px 420px at 0% -10%, var(--glow-a) 0%, transparent 60%),
+        radial-gradient(700px 380px at 100% 0%, var(--glow-b) 0%, transparent 55%),
+        var(--paper);
+      transition: background 0.35s ease, color 0.35s ease;
+    }
+    .wrap {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 40px 24px 72px;
+      animation: rise 0.55s cubic-bezier(.2,.7,.2,1) both;
+    }
+    .top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 28px;
+    }
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 0;
+      max-width: 16ch;
+      font-family: Georgia, "Iowan Old Style", serif;
+      font-size: 52px;
+      font-weight: 560;
+      letter-spacing: -0.03em;
+      line-height: 1.02;
+    }
+    .layout { display: block; }
+    .tools { display: flex; align-items: center; gap: 10px; }
+    .back { display: none; }
+    body.checking .back { display: inline-flex; }
+    body.checking .wrap {
+      display: flex;
+      flex-direction: column;
+      width: 1040px;
+      max-width: calc(100% - 32px);
+      height: 100vh;
+      margin: 0 auto;
+      padding: 24px 0 20px;
+      overflow: hidden;
+    }
+    body.checking .top { margin-bottom: 16px; align-items: center; }
+    body.checking h1 { font-size: 32px; max-width: none; }
+    body.checking .layout { flex: 1; min-height: 0; }
+    body.checking #composer { display: none; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      padding: 18px;
+      transition: background 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+    }
+    label[for="email"] {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 13px;
+      font-weight: 650;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    textarea {
+      width: 100%;
+      min-height: 420px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px 16px;
+      color: var(--ink);
+      background: var(--field);
+      font: 13px/1.5 ui-monospace, "Cascadia Code", "Source Code Pro", monospace;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    textarea:focus, button:focus-visible, .file:focus-within, a:focus-visible {
+      outline: 2px solid var(--ink);
+      outline-offset: 2px;
+    }
+    textarea:focus { box-shadow: 0 0 0 4px color-mix(in srgb, var(--ink) 12%, transparent); }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 14px; }
+    button, .file {
+      border-radius: 999px;
+      border: 1px solid var(--ink);
+      background: transparent;
+      color: var(--ink);
+      padding: 9px 16px;
+      font: inherit;
+      cursor: pointer;
+      transition: transform 0.16s ease, background 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+    }
+    button:hover, .file:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(0) scale(0.98); }
+    button.primary { background: var(--ink); color: var(--on-primary); }
+    button.primary.working::before {
+      content: "";
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      margin-right: 8px;
+      vertical-align: -1px;
+      border-radius: 50%;
+      border: 2px solid color-mix(in srgb, var(--on-primary) 35%, transparent);
+      border-top-color: var(--on-primary);
+      animation: spin 0.7s linear infinite;
+    }
+    .theme {
+      position: relative;
+      flex: none;
+      width: 78px;
+      height: 40px;
+      margin-top: 2px;
+      padding: 0;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: color-mix(in srgb, var(--ink) 7%, var(--card));
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
+    }
+    .theme:hover, .theme:active { transform: none; }
+    .theme-icon {
+      position: absolute;
+      z-index: 2;
+      top: 50%;
+      display: grid;
+      width: 16px;
+      height: 16px;
+      place-items: center;
+      color: var(--muted);
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+    .theme-icon.sun { left: 12px; }
+    .theme-icon.moon { right: 12px; }
+    [data-theme="light"] .theme-icon.sun { color: var(--paper); }
+    [data-theme="dark"] .theme-icon.moon { color: var(--paper); }
+    .theme-thumb {
+      position: absolute;
+      z-index: 1;
+      top: 3px;
+      left: 3px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--ink);
+      box-shadow: var(--thumb-shadow);
+      transition: transform 0.32s cubic-bezier(.2,.7,.2,1);
+    }
+    [data-theme="dark"] .theme-thumb { transform: translateX(38px); }
+    button:disabled { cursor: wait; }
+    .file { position: relative; overflow: hidden; }
+    .file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .kbd {
+      margin-left: auto;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.04em;
+    }
+    #result {
+      display: none;
+      grid-template-columns: 660px 340px;
+      gap: 18px;
+      width: 1018px;
+      max-width: 100%;
+      height: 100%;
+      min-height: 0;
+    }
+    body.checking #result {
+      display: grid;
+      animation: rise 0.48s cubic-bezier(.2,.7,.2,1) both;
+    }
+    .pane {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      overflow: auto;
+      overscroll-behavior: contain;
+      scrollbar-color: var(--line) transparent;
+      scrollbar-width: thin;
+    }
+    .pane::-webkit-scrollbar { width: 10px; }
+    .pane::-webkit-scrollbar-thumb {
+      background: var(--line);
+      border: 2px solid var(--card);
+      border-radius: 99px;
+    }
+    #detail.busy::before {
+      content: "";
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: block;
+      height: 2px;
+      margin: -18px -18px 16px;
+      border-radius: 99px;
+      background: linear-gradient(90deg, transparent, var(--ink), transparent);
+      background-size: 40% 100%;
+      background-repeat: no-repeat;
+      animation: sweep 1.15s ease-in-out infinite;
+    }
+    .idle {
+      min-height: 384px;
+      display: grid;
+      place-items: center;
+    }
+    .idle-ring {
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      border: 1px solid var(--line);
+      display: grid;
+      place-items: center;
+    }
+    .idle-ring::after {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--ink);
+      opacity: 0.35;
+      animation: breathe 2.6s ease-in-out infinite;
+    }
+    .panel {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      column-gap: 16px;
+      align-items: end;
+      border-radius: 16px;
+      padding: 18px 18px 14px;
+    }
+    .panel.phishing { background: var(--phish-bg); color: var(--phish); }
+    .panel.legitimate { background: var(--safe-bg); color: var(--safe); }
+    .verdict {
+      margin: 0;
+      font-family: Georgia, "Iowan Old Style", serif;
+      font-size: 40px;
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+    .percent {
+      margin: 0;
+      font-variant-numeric: tabular-nums;
+      font-size: 28px;
+      font-weight: 650;
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+    .percent small { font-size: 14px; font-weight: 550; letter-spacing: 0; }
+    .meter {
+      grid-column: 1 / -1;
+      height: 6px;
+      margin-top: 16px;
+      overflow: hidden;
+      border-radius: 99px;
+      background: rgba(0, 0, 0, 0.08);
+    }
+    .meter span {
+      display: block;
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: currentColor;
+      transition: width 0.75s cubic-bezier(.2,.7,.2,1);
+    }
+    .meta {
+      display: grid;
+      gap: 10px;
+      margin: 16px 0 0;
+    }
+    .meta div { min-width: 0; }
+    .meta dt {
+      color: var(--ink);
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .meta dd { margin: 2px 0 0; font-size: 18px; overflow-wrap: anywhere; }
+    .summary { margin: 14px 0 0; }
+    h2 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 22px 0 10px;
+      color: var(--ink);
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    h2.lead { font-size: 24px; }
+    h2 .count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 1.7em;
+      padding: 1px 8px;
+      border-radius: 999px;
+      background: var(--chip);
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0;
+      line-height: 1.45;
+    }
+    ul { margin: 0; padding: 0; list-style: none; }
+    li { padding: 10px 0; border-top: 1px solid var(--line); }
+    li strong { display: block; }
+    li span, .resource p { color: var(--muted); }
+    .chips, .auth { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      border-radius: 999px;
+      padding: 3px 9px;
+      background: var(--warn-bg);
+      color: var(--warn);
+      font-size: 13px;
+      animation: pop 0.35s cubic-bezier(.2,.7,.2,1) both;
+      animation-delay: calc(var(--i, 0) * 35ms);
+    }
+    .chip.pass { background: var(--safe-bg); color: var(--safe); }
+    .chip.fail { background: var(--phish-bg); color: var(--phish); }
+    .chip.none { background: var(--chip); color: var(--muted); }
+    .chip.warn { background: var(--warn-bg); color: var(--warn); }
+    .resource { padding: 12px 0; border-top: 1px solid var(--line); }
+    .resource p { margin: 2px 0; }
+    .resource .host { color: var(--ink); font-weight: 680; }
+    .url {
+      color: var(--ink);
+      font-family: ui-monospace, "Cascadia Code", "Source Code Pro", monospace;
+      font-size: 12px;
+      word-break: break-all;
+    }
+    a.report { color: var(--ink); font-size: 13px; }
+    .reports { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 6px; }
+    .reports a { text-underline-offset: 3px; }
+    .hint { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+    .warn {
+      margin-top: 12px;
+      border-radius: 12px;
+      padding: 8px 10px;
+      background: var(--warn-bg);
+      color: var(--warn);
+    }
+    .error { color: var(--phish); }
+    .pane > :not(.idle) {
+      animation: rise 0.46s cubic-bezier(.2,.7,.2,1) both;
+    }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: none; }
+    }
+    @keyframes pop {
+      from { opacity: 0; transform: scale(0.92); }
+      to { opacity: 1; transform: none; }
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes sweep {
+      from { background-position: -40% 0; }
+      to { background-position: 140% 0; }
+    }
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); opacity: 0.3; }
+      50% { transform: scale(1.35); opacity: 0.7; }
+    }
+    @media (max-width: 860px) {
+      .wrap { padding: 28px 16px 48px; }
+      h1 { font-size: 38px; max-width: none; }
+      body.checking .wrap { width: auto; height: auto; overflow: visible; padding: 28px 16px 48px; }
+      body.checking #result { grid-template-columns: 1fr; width: 100%; height: auto; }
+      .pane { height: 70vh; }
+      textarea, .idle { min-height: 240px; }
+      .panel { grid-template-columns: 1fr; }
+      .percent { margin-top: 8px; }
+      .kbd { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <div>
+        <p class="eyebrow">Phishdet by Ankit Mallick</p>
+        <h1>Check an email before you trust it</h1>
+      </div>
+      <div class="tools">
+      <button type="button" id="back" class="back" hidden>Back</button>
+      <button type="button" id="theme" class="theme" aria-label="Use dark mode" aria-pressed="false">
+        <span class="theme-icon sun" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.1 5.1l1.6 1.6M17.3 17.3l1.6 1.6M18.9 5.1l-1.6 1.6M6.7 17.3l-1.6 1.6"></path>
+          </svg>
+        </span>
+        <span class="theme-icon moon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+            <path d="M15.5 2.8a8.8 8.8 0 1 0 5.7 14.8A8.2 8.2 0 0 1 15.5 2.8z"></path>
+          </svg>
+        </span>
+        <span class="theme-thumb" aria-hidden="true"></span>
+      </button>
+      </div>
+    </header>
+    <main class="layout">
+      <section class="card" id="composer">
+        <form id="check-form">
+          <label for="email">Email</label>
+          <textarea id="email" name="email" spellcheck="false" placeholder="From, Subject, and the message" required></textarea>
+          <div class="actions">
+            <button class="primary" type="submit">Check email</button>
+            <label class="file">Choose file
+              <input id="file" type="file" accept=".eml,.txt,message/rfc822,text/plain">
+            </label>
+            <span class="kbd">Ctrl+Enter</span>
+          </div>
+        </form>
+      </section>
+      <section id="result" aria-live="polite" aria-label="Result" aria-hidden="true">
+        <div class="card pane" id="detail">
+          <div class="idle"><span class="idle-ring" aria-hidden="true"></span></div>
+        </div>
+        <aside class="card pane" id="reasons" aria-label="Reasons"></aside>
+      </section>
+    </main>
+  </div>
+  <noscript><p>Phishdet needs JavaScript to score a message in the browser. You can still run <code>phishdet</code> from a terminal.</p></noscript>
+  <script>
+    const email = document.querySelector("#email");
+    const form = document.querySelector("#check-form");
+    const file = document.querySelector("#file");
+    const result = document.querySelector("#result");
+    const detail = document.querySelector("#detail");
+    const reasons = document.querySelector("#reasons");
+    const back = document.querySelector("#back");
+    const submit = form.querySelector("button[type=submit]");
+    const themeButton = document.querySelector("#theme");
+    let ticket = 0;
+
+    function paintTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      try { localStorage.setItem("phishdet-theme", theme); } catch (error) {}
+      const dark = theme === "dark";
+      themeButton.setAttribute("aria-pressed", dark ? "true" : "false");
+      themeButton.setAttribute("aria-label", dark ? "Use light mode" : "Use dark mode");
+    }
+
+    paintTheme(document.documentElement.getAttribute("data-theme") || "light");
+    themeButton.addEventListener("click", () => {
+      paintTheme(document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark");
+    });
+
+    function openResult() {
+      document.body.classList.add("checking");
+      result.setAttribute("aria-hidden", "false");
+      back.hidden = false;
+    }
+
+    function closeResult() {
+      ticket += 1;
+      document.body.classList.remove("checking");
+      result.setAttribute("aria-hidden", "true");
+      detail.classList.remove("busy");
+      back.hidden = true;
+      submit.disabled = false;
+      submit.classList.remove("working");
+      submit.textContent = "Check email";
+    }
+
+    back.addEventListener("click", closeResult);
+
+    function clear(node) {
+      while (node.firstChild) node.removeChild(node.firstChild);
+    }
+
+    function el(tag, text, className) {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text != null) node.textContent = text;
+      return node;
+    }
+
+    function showError(message) {
+      detail.classList.remove("busy");
+      clear(detail);
+      clear(reasons);
+      detail.appendChild(el("p", message, "error"));
+    }
+
+    function chipClass(value) {
+      if (value === "pass" || value === "bestguesspass") return "chip pass";
+      if (value === "fail" || value === "permerror") return "chip fail";
+      if (value === "softfail" || value === "temperror") return "chip warn";
+      return "chip none";
+    }
+
+    function reportHref(url) {
+      if (typeof url !== "string") return "";
+      if (url.startsWith("https://www.virustotal.com/gui/")) return url;
+      if (url.startsWith("https://urlscan.io/result/")) return url;
+      return "";
+    }
+
+    function addReportLink(parent, href, label) {
+      const safe = reportHref(href);
+      if (!safe) return;
+      const link = document.createElement("a");
+      link.href = safe;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.className = "report";
+      link.textContent = label;
+      parent.appendChild(link);
+    }
+
+    function field(term, value) {
+      const row = document.createElement("div");
+      row.appendChild(el("dt", term));
+      row.appendChild(el("dd", value));
+      return row;
+    }
+
+    function render(data) {
+      detail.classList.remove("busy");
+      clear(detail);
+      clear(reasons);
+      detail.scrollTop = 0;
+      reasons.scrollTop = 0;
+      const panel = el("div", null, "panel " + data.label);
+      const title = data.label === "phishing" ? "Phishing" : "Legitimate";
+      const percent = Math.round(data.phishing_probability * 100);
+      panel.appendChild(el("p", title, "verdict"));
+      const score = el("p", null, "percent");
+      score.appendChild(el("span", String(percent)));
+      score.appendChild(el("small", "%"));
+      panel.appendChild(score);
+      const meter = el("div", null, "meter");
+      const bar = document.createElement("span");
+      meter.appendChild(bar);
+      panel.appendChild(meter);
+      detail.appendChild(panel);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => { bar.style.width = percent + "%"; });
+      });
+
+      if (data.low_confidence) {
+        detail.appendChild(el("p", "Close call. Read the reasons before you trust this.", "warn"));
+      }
+
+      const meta = el("dl", null, "meta");
+      meta.appendChild(field("Subject", data.subject || "(none)"));
+      meta.appendChild(field("From", data.sender || "(no From header)"));
+      meta.appendChild(field("Language model", Math.round(data.text_probability * 100) + "%"));
+      detail.appendChild(meta);
+      detail.appendChild(el("p", data.summary, "summary"));
+
+      renderHeaders(data.headers);
+      renderResources(data.resources, data.intel);
+
+      if (data.clues && data.clues.length) {
+        detail.appendChild(el("h2", "Clues"));
+        const chips = el("div", null, "chips");
+        data.clues.forEach((clue, index) => {
+          const chip = el("span", clue, "chip");
+          chip.style.setProperty("--i", String(index));
+          chips.appendChild(chip);
+        });
+        detail.appendChild(chips);
+      }
+
+      addList(reasons, "Reasons", data.reasons, { count: true, lead: true });
+      addList(reasons, "Reassuring signals", data.reassurances);
+    }
+
+    function renderHeaders(headers) {
+      detail.appendChild(el("h2", "Headers"));
+      if (!headers) return;
+      const auth = el("div", null, "auth");
+      ["spf", "dkim", "dmarc"].forEach((name, index) => {
+        const value = headers[name] || "none";
+        const chip = el("span", name.toUpperCase() + " " + value, chipClass(value));
+        chip.style.setProperty("--i", String(index));
+        auth.appendChild(chip);
+      });
+      detail.appendChild(auth);
+      if (headers.date) detail.appendChild(el("p", headers.date, "hint"));
+      if (headers.reply_to) detail.appendChild(el("p", "Reply-To " + headers.reply_to, "hint"));
+      (headers.notes || []).forEach((note) => {
+        const row = el("p", null, "hint");
+        row.appendChild(el("strong", note.title + ". "));
+        row.appendChild(document.createTextNode(note.detail || ""));
+        detail.appendChild(row);
+      });
+    }
+
+    function heading(title, count, className) {
+      const node = document.createElement("h2");
+      if (className) node.className = className;
+      node.appendChild(document.createTextNode(title));
+      if (typeof count === "number") {
+        node.appendChild(el("span", String(count), "count"));
+      }
+      return node;
+    }
+
+    function renderResources(resources, intel) {
+      const domains = resources || [];
+      detail.appendChild(heading("Domains", domains.length));
+      if (!domains.length) {
+        detail.appendChild(el("p", "No public domain.", "hint"));
+        return;
+      }
+      if (intel && intel.total > intel.looked_up && intel.status === "done") {
+        detail.appendChild(el("p", intel.looked_up + " of " + intel.total, "hint"));
+      }
+      domains.forEach((item) => {
+        const block = el("div", null, "resource");
+        const roles = (item.roles || []).join(", ");
+        block.appendChild(el("p", item.domain + (roles ? " · " + roles : ""), "host"));
+        (item.urls || []).forEach((url) => block.appendChild(el("p", url, "url")));
+        block.appendChild(el("p", item.age_detail || "No domain age."));
+        block.appendChild(el("p", item.vt_detail || "VirusTotal was not checked."));
+        block.appendChild(el("p", item.urlscan_detail || "urlscan was not checked."));
+        const links = el("p", null, "reports");
+        addReportLink(links, item.vt_link, "VirusTotal");
+        addReportLink(links, item.urlscan_link, "urlscan");
+        if (links.childNodes.length) block.appendChild(links);
+        detail.appendChild(block);
+      });
+    }
+
+    function addList(parent, title, items, options) {
+      const rows = items || [];
+      const counted = options && options.count;
+      if (!rows.length && !counted) return;
+      if (counted) {
+        parent.appendChild(heading(title, rows.length, options.lead ? "lead" : ""));
+      } else {
+        parent.appendChild(el("h2", title));
+      }
+      if (!rows.length) return;
+      const list = document.createElement("ul");
+      rows.forEach((item) => {
+        const row = document.createElement("li");
+        row.appendChild(el("strong", item.title));
+        row.appendChild(el("span", item.detail));
+        list.appendChild(row);
+      });
+      parent.appendChild(list);
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const mine = ++ticket;
+      openResult();
+      submit.disabled = true;
+      submit.classList.add("working");
+      submit.textContent = "Checking…";
+      let localShown = false;
+      try {
+        const response = await fetch("/api/detect", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.value }),
+        });
+        const data = await response.json();
+        if (mine !== ticket) return;
+        if (!response.ok) {
+          showError(data.error || "Could not check that email.");
+          return;
+        }
+        render(data);
+        localShown = true;
+        detail.classList.add("busy");
+        const status = el("p", "Checking domain age, urlscan, and VirusTotal…", "hint");
+        status.id = "intel-status";
+        detail.appendChild(status);
+        const intelResponse = await fetch("/api/intel", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.value }),
+        });
+        const intel = await intelResponse.json();
+        if (mine !== ticket) return;
+        if (!intelResponse.ok) {
+          detail.classList.remove("busy");
+          status.textContent = "Reputation checks did not finish. The verdict above is from the local check only.";
+          status.className = "warn";
+          return;
+        }
+        render(intel);
+      } catch (error) {
+        if (mine !== ticket) return;
+        if (localShown) {
+          detail.classList.remove("busy");
+          const status = document.querySelector("#intel-status");
+          if (status) {
+            status.textContent = "Reputation checks did not finish. The verdict above is from the local check only.";
+            status.className = "warn";
+          }
+        } else {
+          showError("The checker did not respond.");
+        }
+      } finally {
+        if (mine === ticket) {
+          submit.disabled = false;
+          submit.classList.remove("working");
+          submit.textContent = "Check email";
+        }
+      }
+    });
+
+    email.addEventListener("keydown", (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+        event.preventDefault();
+        form.requestSubmit();
+      }
+    });
+
+    file.addEventListener("change", async () => {
+      const chosen = file.files && file.files[0];
+      if (!chosen) return;
+      email.value = await chosen.text();
+    });
+  </script>
+</body>
+</html>

