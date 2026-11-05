@@ -412,6 +412,26 @@
       letter-spacing: 0;
       line-height: 1.45;
     }
+    #reasons.secure h2.lead { color: var(--safe); }
+    .check {
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+    }
+    .check .mark {
+      display: grid;
+      width: 28px;
+      height: 28px;
+      margin-top: 2px;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--safe-bg);
+      color: var(--safe);
+      font-size: 14px;
+      font-weight: 700;
+      font-style: normal;
+    }
     ul { margin: 0; padding: 0; list-style: none; }
     li { padding: 10px 0; border-top: 1px solid var(--line); }
     li strong { display: block; }
@@ -610,6 +630,7 @@
 
     function showError(message) {
       detail.classList.remove("busy");
+      reasons.classList.remove("secure");
       clear(detail);
       clear(reasons);
       detail.appendChild(el("p", message, "error"));
@@ -672,7 +693,10 @@
       });
 
       if (data.low_confidence) {
-        detail.appendChild(el("p", "Close call. Read the reasons before you trust this.", "warn"));
+        const caution = data.label === "legitimate"
+          ? "Close call. The score sits near the line."
+          : "Close call. Read the reasons before you trust this.";
+        detail.appendChild(el("p", caution, "warn"));
       }
 
       const meta = el("dl", null, "meta");
@@ -696,8 +720,130 @@
         detail.appendChild(chips);
       }
 
-      addList(reasons, "Reasons", data.reasons, { count: true, lead: true });
-      addList(reasons, "Reassuring signals", data.reassurances);
+      const legitimate = data.label === "legitimate";
+      reasons.classList.toggle("secure", legitimate);
+      reasons.setAttribute("aria-label", legitimate ? "Passed checks" : "Reasons");
+      if (legitimate) {
+        renderPassed(reasons, data);
+      } else {
+        addList(reasons, "Reasons", data.reasons, { count: true, lead: true });
+        addList(reasons, "Reassuring signals", data.reassurances);
+      }
+    }
+
+    function hasCode(items, code) {
+      return (items || []).some((item) => item.code === code);
+    }
+
+    function passedChecks(data) {
+      const checks = [];
+      const reasons = data.reasons || [];
+      const headers = data.headers || {};
+      const resources = data.resources || [];
+      const text = Number(data.text_probability);
+      (data.reassurances || []).forEach((item) => {
+        checks.push({ title: item.title, detail: item.detail });
+      });
+      if (!hasCode(reasons, "password_form") && !hasCode(reasons, "risky_attachment")) {
+        checks.push({
+          title: "No credential trap",
+          detail: "No password field, and no attachment of a type often used to deliver malware.",
+        });
+      }
+      if (
+        !hasCode(reasons, "brand_impersonation")
+        && !hasCode(reasons, "display_name_impersonation")
+        && !hasCode(reasons, "display_name_address_mismatch")
+        && data.sender
+      ) {
+        checks.push({
+          title: "Sender name fits the address",
+          detail: "The display name does not claim an organization the address does not belong to.",
+        });
+      }
+      const linkRisk = ["href_mismatch", "script_url", "ip_url", "at_sign_url", "shortener_lure", "pressure_external_link", "suspicious_tld"];
+      if (!linkRisk.some((code) => hasCode(reasons, code))) {
+        const hasLinks = resources.some((item) => (item.roles || []).includes("link") || (item.urls || []).length);
+        checks.push({
+          title: hasLinks ? "Links are straightforward" : "No deceptive link",
+          detail: hasLinks
+            ? "No link text disagrees with its destination, and none use a script, a raw IP, or a hidden host."
+            : "The message does not send you to a lookalike, a raw IP, or a hidden host.",
+        });
+      }
+      if (headers.reply_to && !hasCode(reasons, "reply_to_mismatch")) {
+        checks.push({
+          title: "Reply-To matches From",
+          detail: "A reply stays on the same domain as the sender.",
+        });
+      }
+      ["spf", "dkim", "dmarc"].forEach((name) => {
+        const value = headers[name];
+        if (value !== "pass" && value !== "bestguesspass") return;
+        const how = value === "pass" ? "passed" : "is a best-guess pass";
+        checks.push({
+          title: name.toUpperCase() + " " + how,
+          detail: "The pasted authentication header says so. Trust that when your mail server added the header.",
+        });
+      });
+      if (text < 0.5) {
+        checks.push({
+          title: "Wording is ordinary",
+          detail: "The language model scored " + Math.round(text * 100) + "%. The wording does not match phishing mail.",
+        });
+      }
+      if (!data.intel || data.intel.status !== "done") return checks;
+      resources.forEach((item) => {
+        const domain = item.domain || "This domain";
+        if (item.age_status === "registered" && typeof item.age_days === "number" && item.age_days >= 90) {
+          checks.push({
+            title: domain + " is established",
+            detail: (item.age_detail || "The domain has a registration record.") + " It is not a newly created domain.",
+          });
+        }
+        const urlMalicious = typeof item.vt_url_malicious === "number" && item.vt_url_malicious > 0;
+        const suspicious = typeof item.vt_suspicious === "number" && item.vt_suspicious > 0;
+        if (item.vt_status === "clean" && !urlMalicious && !suspicious) {
+          checks.push({
+            title: "VirusTotal is clean for " + domain,
+            detail: item.vt_detail || "No engine marked this domain malicious.",
+          });
+        }
+        if (item.urlscan_malicious === false) {
+          checks.push({
+            title: "urlscan is clean for " + domain,
+            detail: item.urlscan_detail || "A matching public scan is not marked malicious.",
+          });
+        }
+      });
+      return checks;
+    }
+
+    function renderPassed(parent, data) {
+      const checks = passedChecks(data);
+      parent.appendChild(heading("Passed", checks.length, "lead"));
+      if (!checks.length) {
+        parent.appendChild(el("p", "The score stayed under the phishing line. No single check stood out on its own.", "hint"));
+      } else {
+        const list = document.createElement("ul");
+        list.className = "checks";
+        checks.forEach((item) => {
+          const row = document.createElement("li");
+          row.className = "check";
+          const mark = el("span", "✓", "mark");
+          mark.setAttribute("aria-hidden", "true");
+          row.appendChild(mark);
+          const text = document.createElement("div");
+          text.appendChild(el("strong", item.title));
+          text.appendChild(el("span", item.detail));
+          row.appendChild(text);
+          list.appendChild(row);
+        });
+        parent.appendChild(list);
+      }
+      if (data.intel && data.intel.status === "pending" && (data.resources || []).length) {
+        parent.appendChild(el("p", "Domain age, VirusTotal, and urlscan are still running.", "hint"));
+      }
     }
 
     function renderHeaders(headers) {
