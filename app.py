@@ -90,7 +90,7 @@ def _run(kind: str, email: str) -> Response:
 def home() -> dict:
     return {
         "ok": True,
-        "page": "https://ankitmallick800.github.io/phishingDetector/",
+        "page": "https://ankitmallick800.github.io/PhisDet/",
     }
 
 

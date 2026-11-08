@@ -1,0 +1,18 @@
+# GitHub Pages was rendering README.md as the site. Keep the published
+# files to the page itself.
+include:
+  - .nojekyll
+exclude:
+  - README.md
+  - src
+  - tests
+  - scripts
+  - docs
+  - app.py
+  - requirements.txt
+  - pyproject.toml
+  - vercel.json
+  - .vercelignore
+  - .python-version
+  - .gitignore
+  - demo-phishing.eml
