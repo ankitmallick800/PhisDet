@@ -51,6 +51,10 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", "0")
             self.end_headers()
             return
+        if path == "/config.js":
+            body = b'window.PHISHDET_API = "";\n'
+            self._bytes(200, "text/javascript; charset=utf-8", body)
+            return
         if path == "/api/health":
             self._json(200, _health())
             return

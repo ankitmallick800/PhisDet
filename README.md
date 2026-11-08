@@ -18,6 +18,8 @@ phishdet serve
 
 `phishdet serve` listens on `http://127.0.0.1:8000/`. Paste a message or choose a `.eml` file. The page scores the message locally, then looks up domain age, urlscan, and VirusTotal for the public domains in it. The built-in examples are a PayPal lookalike, a real-domain password reset, an ordinary work note, and a wire-transfer lure.
 
+The hosted page is [GitHub Pages](https://ankitmallick800.github.io/phishingDetector/). It sends the pasted message to the API at `https://phishingdetector-flax.vercel.app`. That API does not open links from the message. `VIRUSTOTAL_API_KEY` and `URLSCAN_API_KEY` are set on the Vercel project, not in the page.
+
 ```bash
 phishdet --intel --sample reset
 ```

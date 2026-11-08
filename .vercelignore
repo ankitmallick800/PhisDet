@@ -1,0 +1,10 @@
+.venv
+.git
+data
+tests
+__pycache__
+.pytest_cache
+*.pyc
+demo-phishing.eml
+.env
+.env.*

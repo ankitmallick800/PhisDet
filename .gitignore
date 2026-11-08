@@ -7,3 +7,6 @@ dist/
 build/
 data/raw/
 .env
+.env.local
+.env*.local
+.vercel/

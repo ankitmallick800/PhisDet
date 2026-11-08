@@ -573,7 +573,9 @@
     </main>
   </div>
   <noscript><p>Phishdet needs JavaScript to score a message in the browser. You can still run <code>phishdet</code> from a terminal.</p></noscript>
+  <script src="config.js"></script>
   <script>
+    const API_BASE = String(window.PHISHDET_API || "").replace(/\/$/, "");
     const email = document.querySelector("#email");
     const form = document.querySelector("#check-form");
     const file = document.querySelector("#file");
@@ -932,7 +934,7 @@
       submit.textContent = "Checking…";
       let localShown = false;
       try {
-        const response = await fetch("/api/detect", {
+        const response = await fetch(API_BASE + "/api/detect", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: email.value }),
@@ -949,7 +951,7 @@
         const status = el("p", "Checking domain age, urlscan, and VirusTotal…", "hint");
         status.id = "intel-status";
         detail.appendChild(status);
-        const intelResponse = await fetch("/api/intel", {
+        const intelResponse = await fetch(API_BASE + "/api/intel", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: email.value }),
