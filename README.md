@@ -1,3 +1,8 @@
+<img width="1113" height="775" alt="image" src="https://github.com/user-attachments/assets/c1544892-0c94-4ed5-8114-8ed56b09c3e2" />
+<img width="1070" height="816" alt="image" src="https://github.com/user-attachments/assets/5ab14ac2-2478-41e1-b3b5-422d4af82cd6" />
+<img width="1076" height="976" alt="image" src="https://github.com/user-attachments/assets/3d3c5583-ecb0-4b3b-af29-8ff90771487b" />
+
+
 # Phishdet
 
 Phishdet reads an email and estimates whether it is phishing. Paste a message, point it at an `.eml` file, or open the local page.
